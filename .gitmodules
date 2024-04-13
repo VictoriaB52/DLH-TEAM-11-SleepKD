@@ -1,0 +1,3 @@
+[submodule "deepsleepnet"]
+	path = deepsleepnet
+	url = https://github.com/akaraspt/deepsleepnet.git
