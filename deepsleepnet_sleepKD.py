@@ -1,4 +1,3 @@
-from deepsleep.data_loader import NonSeqDataLoader
 import sys
 import numpy as np
 import tensorflow as tf
@@ -7,12 +6,8 @@ from keras import layers
 from keras.models import Model
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, accuracy_score, f1_score
+from data_loader import load_all_data
 import os
-
-# only time we're directly using code from a DeepSleepNet module
-# added load_all_data() method to NonSeqDataLoader
-import sys
-sys.path.append('./deepsleepnet')
 
 
 def get_deep_sleep_model(MODEL_DIR, x_train, y_train):
@@ -121,18 +116,11 @@ def deep_sleep_net_rnn(input_layer):
 def main():
     DATA_DIR = 'data/eeg_fpz_cz/'
     MODEL_DIR = 'deepsleepnetSCCE.keras'
-    n_folds = 20
-    fold_idx = 0
-    EPOCH_SEC_LEN = 30
 
     np.random.seed(12345)
     tf.random.set_seed(12345)
 
-    data_loader = NonSeqDataLoader(
-        data_dir=DATA_DIR,
-        n_folds=n_folds,
-        fold_idx=fold_idx)
-    data, labels = data_loader.load_all_data()
+    data, labels = load_all_data(DATA_DIR)
 
     x_train, x_test, y_train, y_test = train_test_split(
         data, labels, test_size=0.1, random_state=12345)
