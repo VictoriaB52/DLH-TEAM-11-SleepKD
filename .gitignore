@@ -1,2 +1,5 @@
-# Keras DL Model
+# Keras DL Models
 *.keras
+
+# deepsleepnet repo
+deepsleepnet/
