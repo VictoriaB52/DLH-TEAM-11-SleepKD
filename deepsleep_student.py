@@ -4,15 +4,24 @@ from keras.models import Model
 import os
 
 
-def get_deep_sleep_student_model(MODEL_DIR, x_train):
+def get_deep_sleep_student_model(MODEL_DIR, x_train, y_train):
     # to avoid re-training if a model is already saved, just load and return it
     if os.path.isfile(MODEL_DIR):
-        return keras.models.load_model(MODEL_DIR)
+        student_model_trained = keras.models.load_model(MODEL_DIR)
+        student_model_blank = deep_sleep_net_student(x_train)
+        return student_model_blank, student_model_trained
 
-    model = deep_sleep_net_student(x_train)
+    student_model_blank = deep_sleep_net_student(x_train)
+    student_model_trained = deep_sleep_net_student(x_train)
 
-    # don't actually fit the student model - done in distiller in main file
-    return model
+    student_model_trained.compile(optimizer='adam',
+                                  loss=keras.losses.SparseCategoricalCrossentropy(from_logits=False), metrics=["accuracy"])
+
+    student_model_trained.fit(x_train, y_train, epochs=1, batch_size=100,
+                              validation_split=0.1)
+
+    student_model_trained.save(MODEL_DIR)
+    return student_model_blank, student_model_trained
 
 
 # build the model architecture

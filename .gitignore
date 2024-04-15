@@ -1,5 +1,6 @@
 # Keras DL Models
 *.keras
+*.h5
 
 # deepsleepnet repo
 deepsleepnet/

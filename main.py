@@ -117,15 +117,9 @@ class Distiller(keras.Model):
 
 def main():
     DATA_DIR = 'data/eeg_fpz_cz/'
-    TEACHER_MODEL_DIR = 'deep_sleep_net_teacher.keras'
+    TEACHER_MODEL_DIR = 'models/deep_sleep_net_teacher.keras'
     STUDENT_MODEL_DIR = 'deep_sleep_net_student.keras'
     DISTILLED_STUDENT_DIR = 'deep_sleep_net_distilled.keras'
-
-    print(tf.__version__)
-    print(keras.__version__)
-    print(np.__version__)
-    print(mne.__version__)
-    print(sklearn.__version__)
 
     np.random.seed(12345)
     tf.random.set_seed(12345)
@@ -135,23 +129,49 @@ def main():
     x_train, x_test, y_train, y_test = train_test_split(
         data, labels, test_size=0.1, random_state=12345)
 
+    # teacher model
+
     teacher_model = get_deep_sleep_teacher_model(
         TEACHER_MODEL_DIR, x_train, y_train)
+    teacher_model.save_weights("teacher_weights.h5")
 
     teacher_preds = teacher_model.predict(x_test, batch_size=100)
-    teacher_preds = np.argmax(preds, axis=1)
+    teacher_preds = np.argmax(teacher_preds, axis=-1)
 
+    print("\nresults of teacher model:")
     conf_matrix = confusion_matrix(y_test, teacher_preds)
     print(conf_matrix)
-    print(accuracy_score(y_test, teacher_preds))
-    print(f1_score(y_test, teacher_preds, average="macro"))
 
-    student_model = get_deep_sleep_student_model(STUDENT_MODEL_DIR, x_train)
+    print("accuracy: " + str(accuracy_score(y_test, teacher_preds)))
+    print("f1-score: " + str(f1_score(y_test, teacher_preds, average="macro")))
+    print('\n')
+
+    # student model
+
+    student_model_blank, student_model_trained = get_deep_sleep_student_model(
+        STUDENT_MODEL_DIR, x_train, y_train)
+
+    student_model_trained.save_weights("student_weights.h5")
+
+    student_preds = teacher_model.predict(x_test, batch_size=100)
+    student_preds = np.argmax(teacher_preds, axis=-1)
+
+    print("\nresults of student model:")
+    conf_matrix = confusion_matrix(y_test, student_preds)
+    print(conf_matrix)
+
+    print("accuracy: " + str(accuracy_score(y_test, student_preds)))
+    print("f1-score: " + str(f1_score(y_test, student_preds, average="macro")))
+    print('\n')
+
+    # distilled student model
+
     distiller = None
     if os.path.isfile(DISTILLED_STUDENT_DIR):
         distiller = keras.models.load_model(DISTILLED_STUDENT_DIR)
     else:
-        distiller = Distiller(student=student_model, teacher=teacher_model)
+        distiller = Distiller(student=student_model_blank,
+                              teacher=teacher_model)
 
         distiller.compile(
             optimizer="adam",
@@ -167,15 +187,19 @@ def main():
         distiller.fit(x_train, y_train, epochs=1)
         distiller.save(DISTILLED_STUDENT_DIR)
 
+    distiller.save_weights('disilled_weights.h5')
     # Evaluate student on test dataset
     student_preds = distiller.predict(x_test, batch_size=100)
 
-    student_preds = np.argmax(student_preds, axis=1)
+    student_preds = np.argmax(student_preds, axis=-1)
 
+    print("\nresults of distilled student model: ")
     conf_matrix = confusion_matrix(y_test, student_preds)
     print(conf_matrix)
-    print(accuracy_score(y_test, student_preds))
-    print(f1_score(y_test, student_preds, average="macro"))
+
+    print("accuracy: " + str(accuracy_score(y_test, student_preds)))
+    print("f1-score: " + str(f1_score(y_test, student_preds, average="macro")))
+    print('\n')
 
 
 main()
