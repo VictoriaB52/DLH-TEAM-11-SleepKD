@@ -19,85 +19,24 @@ def _load_npz_file(npz_file):
 # https://github.com/akaraspt/deepsleepnet/blob/master/deepsleep/data_loader.py
 #
 # Given a list of npz_files, process each and store features/labels into their own file
-# NOT TAKEN DIRECTLY ANYMORE - NOT STACKING (unless this is same as SeqDataLoader's)
 def _load_npz_list_files(npz_files):
     """Load data and labels from list of npz files."""
     data = []
     labels = []
     fs = None
+    print(len(npz_files))
+    print(npz_files)
     for npz_f in npz_files:
-        # print("Loading {} ...".format(npz_f))
+        print("Loading {} ...".format(npz_f))
         tmp_data, tmp_labels, sampling_rate = _load_npz_file(npz_f)
         if fs is None:
             fs = sampling_rate
         elif fs != sampling_rate:
             raise Exception("Found mismatch in sampling rate.")
-
-        tmp_data = np.squeeze(tmp_data)
-        tmp_data = tmp_data[:, :, np.newaxis, np.newaxis]
-
         data.append(tmp_data)
         labels.append(tmp_labels)
-
-    # data = np.vstack(data)
-    # labels = np.hstack(labels)
-
-    return data, labels
-
-
-# CREDIT: this function is heavily inspired by the load_train_data() function in DeepSleepNet's data_loader.py
-# https://github.com/akaraspt/deepsleepnet/blob/master/deepsleep/data_loader.py
-#
-# Since we handle splitting data using sklearn (for train/test) and the validation_split parameter
-# of keras.models.Model.fit(), we don't need to worry about fold index. We just load features/labels
-# for all npz files
-def load_all_data(data_dir):
-    allfiles = os.listdir(data_dir)
-    npzfiles = []
-    for idx, f in enumerate(allfiles):
-        if ".npz" in f:
-            npzfiles.append(os.path.join(data_dir, f))
-
-    # returning list of data, labels for each file
-    data, labels = _load_npz_list_files(
-        npz_files=npzfiles)
-
-    # # Reshape the data to match the input of the model - conv2d
-    # data = np.squeeze(data)
-    # data = data[:, :, np.newaxis, np.newaxis]
-
-    # # Casting
-    # data = data.astype(np.float32)
-    # labels = labels.astype(np.int32)
-
-    # # Use balanced-class, oversample training set
-    # data, labels = get_balance_class_oversample(
-    #     x=data, y=labels
-    # )
-
-    return data, labels
-
-
-def process_non_seq(data, labels):
-
-    # this logic is originally in load_npz_list_files in DeepSleepNet for NonSeqDataLoader
     data = np.vstack(data)
     labels = np.hstack(labels)
-
-    # and this logic is originally in load_train_data for NonSeqDataLoader
-    # Reshape the data to match the input of the model - conv2d
-    # data = np.squeeze(data)
-    # data = data[:, :, np.newaxis, np.newaxis]
-
-    # Casting
-    data = data.astype(np.float32)
-    labels = labels.astype(np.int32)
-
-    # Use balanced-class, oversample training set
-    data, labels = get_balance_class_oversample(
-        x=data, y=labels
-    )
-
     return data, labels
 
 
@@ -140,9 +79,42 @@ def get_balance_class_oversample(x, y):
     return balance_x, balance_y
 
 
+# CREDIT: this function is heavily inspired by the load_train_data() function in DeepSleepNet's data_loader.py
+# https://github.com/akaraspt/deepsleepnet/blob/master/deepsleep/data_loader.py
+#
+# Since we handle splitting data using sklearn (for train/test) and the validation_split parameter
+# of keras.models.Model.fit(), we don't need to worry about fold index. We just load features/labels
+# for all npz files
+def load_all_data(data_dir):
+    allfiles = os.listdir(data_dir)
+    npzfiles = []
+    for idx, f in enumerate(allfiles):
+        if ".npz" in f:
+            npzfiles.append(os.path.join(data_dir, f))
+
+    data, labels = _load_npz_list_files(
+        npz_files=npzfiles)
+
+    # Reshape the data to match the input of the model - conv2d
+    data = np.squeeze(data)
+    data = data[:, :, np.newaxis, np.newaxis]
+
+    # Casting
+    data = data.astype(np.float32)
+    labels = labels.astype(np.int32)
+
+    # Use balanced-class, oversample training set
+    data, labels = get_balance_class_oversample(
+        x=data, y=labels
+    )
+
+    return data, labels
+
 # CREDIT: this file is taken directly from DeepSleepNet's utils.py
 # https://github.com/akaraspt/deepsleepnet/blob/master/deepsleep/utils.py
 #
+
+
 def iterate_batch_seq_minibatches(inputs, targets, batch_size, seq_length):
     assert len(inputs) == len(targets)
     n_inputs = len(inputs)

@@ -1,9 +1,7 @@
 import keras
-from keras.layers import Conv2D, BatchNormalization, ReLU, MaxPooling2D, \
-    Dropout, Dense, Bidirectional, LSTM, Concatenate, Flatten, Reshape
-from keras.models import Model
+from keras.layers import Conv2D, MaxPooling2D, Dropout, Dense, Bidirectional, LSTM, Reshape
 
-from deepsleepnet_DLH.deepsleepnet_base import DeepSleepNetBase, DeepSleepPreTrainBase
+from deepsleepnet_DLH.pretrain_finetune.deepsleepnet_base import DeepSleepNetBase, DeepSleepPreTrainBase
 
 
 class DeepSleepNetTeacher(DeepSleepNetBase):
@@ -58,7 +56,6 @@ class DeepSleepNetPreTrainTeacher(DeepSleepPreTrainBase):
                             strides=(1, 1), padding="same", name="teacherPreTrainConv8", activation="relu")
         self.max_pool4 = MaxPooling2D(pool_size=(
             2, 1), strides=(2, 1), padding="same", name="teacherPreTrainMaxPool4")
-        # self.reshape2 = Reshape((-1, 1024), name="teacherReshape2")
 
         # output of pretraining - use to calculate loss for model
         self.fc1 = Dense(5, activation="softmax", name='teacherPreTrainFC1')
@@ -72,7 +69,7 @@ class DeepSleepNetPreTrainTeacher(DeepSleepPreTrainBase):
         # and activation
         # performance took a hit so removed but left call in logic
         # to show where it would've been
-        # output = self.relu(self.batch_norm1(self.conv1(input_layer)))
+        # output = self.relu(self.batch_norm1(self.conv1(input)))
         output = self.max_pool1(output)
         output = self.do(output)
         output = self.conv2(output)
@@ -87,7 +84,7 @@ class DeepSleepNetPreTrainTeacher(DeepSleepPreTrainBase):
 
     def deep_feature_net_cnn2(self, input):
         output = self.conv5(input)
-        # output = self.relu(self.batch_norm1(self.conv5(input_var)))
+        # output = self.relu(self.batch_norm1(self.conv5(input)))
         output = self.max_pool3(output)
         output = self.do(output)
         output = self.conv6(output)
@@ -100,8 +97,8 @@ class DeepSleepNetPreTrainTeacher(DeepSleepPreTrainBase):
         output = self.flatten(output)
         return output
 
-    def deep_feature_net_final_output(self, input_var):
-        return self.fc1(input_var)
+    def deep_feature_net_final_output(self, input):
+        return self.fc1(input)
 
 
 class DeepSleepNetFineTuneTeacher(DeepSleepNetPreTrainTeacher):

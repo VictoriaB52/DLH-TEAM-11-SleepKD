@@ -1,7 +1,7 @@
 import keras
 from keras.layers import Conv2D, MaxPooling2D, Dense, Reshape, Bidirectional, LSTM
 
-from deepsleepnet_DLH.deepsleepnet_base import DeepSleepNetBase, DeepSleepPreTrainBase
+from deepsleepnet_DLH.pretrain_finetune.deepsleepnet_base import DeepSleepNetBase, DeepSleepPreTrainBase
 
 
 class DeepSleepNetTA(DeepSleepNetBase):
@@ -55,8 +55,8 @@ class DeepSleepNetPreTrainTA(DeepSleepPreTrainBase):
         # will store the network (not including final layer) from forward pass here
         self.network = None
 
-    def deep_feature_net_cnn1(self, input_layer):
-        output = self.conv1(input_layer)
+    def deep_feature_net_cnn1(self, input):
+        output = self.conv1(input)
         output = self.max_pool1(output)
         output = self.do(output)
         output = self.conv2(output)
@@ -64,9 +64,9 @@ class DeepSleepNetPreTrainTA(DeepSleepPreTrainBase):
         output = self.flatten(output)
         return output
 
-    def deep_feature_net_cnn2(self, input_var):
-        output = self.conv3(input_var)
-        # output = self.relu(self.batch_norm1(self.conv5(input_var)))
+    def deep_feature_net_cnn2(self, input):
+        output = self.conv3(input)
+        # output = self.relu(self.batch_norm1(self.conv5(input)))
         output = self.max_pool3(output)
         output = self.do(output)
         output = self.conv4(output)
@@ -74,8 +74,8 @@ class DeepSleepNetPreTrainTA(DeepSleepPreTrainBase):
         output = self.flatten(output)
         return output
 
-    def deep_feature_net_final_output(self, input_var):
-        return self.fc1(input_var)
+    def deep_feature_net_final_output(self, input):
+        return self.fc1(input)
 
 
 class DeepSleepNetFineTuneTA(DeepSleepNetPreTrainTA):
@@ -92,17 +92,17 @@ class DeepSleepNetFineTuneTA(DeepSleepNetPreTrainTA):
         self.reshape1 = Reshape(input_shape=(self.finetune_batch_size * self.finetune_seq_length, 3072),
                                 target_shape=(-1, 3072), name="TAFineTuneReshape1")
         self.bidirectional = Bidirectional(
-            LSTM(512), merge_mode="concat", name="TAFineTuneBidirectional1")
+            LSTM(256), merge_mode="concat", name="TAFineTuneBidirectional1")
 
         # dense to classes
         self.fc3 = Dense(5, activation="softmax", name="TAFineTuneFC3")
 
-    def deep_sleep_net_fc(self, input_layer):
-        return self.fc2(input_layer)
+    def deep_sleep_net_fc(self, input):
+        return self.fc2(input)
 
-    def deep_sleep_net_rnn(self, input_layer):
+    def deep_sleep_net_rnn(self, input):
         # reshape into (batch_size, seq_length, input_dim)
-        output = self.reshape1(input_layer)
+        output = self.reshape1(input)
         output = self.bidirectional(output)
         return output
 

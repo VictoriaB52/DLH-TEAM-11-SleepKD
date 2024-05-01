@@ -7,7 +7,7 @@ from abc import abstractmethod
 import os
 
 
-from data_loader import iterate_batch_seq_minibatches
+from deepsleepnet_DLH.pretrain_finetune.data_loader import iterate_batch_seq_minibatches
 
 
 # superclass for DeepSleepNetTeacher, DeepSleepNetTA, and DeepSleepNetStudent
@@ -39,7 +39,7 @@ class DeepSleepNetBase():
         if os.path.isfile(self.pretrained_model_dir):
             self.pretrained_model.build(self.pretrain_data.shape)
             self.pretrained_model.load_weights(self.pretrained_model_dir)
-            return self.pretrained_model
+            return
 
         # otherwise go through training
         self.pretrained_model.compile(optimizer=Adam(learning_rate=1e-4),
@@ -52,6 +52,8 @@ class DeepSleepNetBase():
 
     def finetune(self):
 
+        print(self.finetuned_model.summary)
+
         self.finetuned_model.build(
             ((self.finetune_batch_size * self.finetune_seq_length,) + self.pretrain_data.shape[1:]))
 
@@ -59,7 +61,7 @@ class DeepSleepNetBase():
         if os.path.isfile(self.finetuned_model_dir):
             self.finetuned_model.load_weights(
                 self.finetuned_model_dir, by_name=True)
-            return self.finetuned_model
+            return
 
         # otherwise go through training
 
@@ -88,9 +90,8 @@ class DeepSleepNetBase():
 
         self.finetuned_model.save_weights(self.finetuned_model_dir)
 
-# superclass for pre-train model of teacher, TA, student
 
-
+# superclass for pre-train model of teacher, TA, studen
 class DeepSleepPreTrainBase(Model):
     def __init__(self, name):
         super(DeepSleepPreTrainBase, self).__init__(name=name)
@@ -102,9 +103,13 @@ class DeepSleepPreTrainBase(Model):
     def call(self, input):
 
         # steps of pre-training model in original DSS - Convolution
+        print("pre-train input: {}".format(input.shape))
         cnn1 = self.deep_feature_net_cnn1(input)
+        print(cnn1.shape)
         cnn2 = self.deep_feature_net_cnn2(input)
+        print(cnn2.shape)
         network = self.concat([cnn1, cnn2])
+        print(network.shape)
         network = self.do(network)
 
         # final layer of pre-training model (in build_model) in original DSS
@@ -138,12 +143,15 @@ class DeepSleepNetFineTuneBase(DeepSleepPreTrainBase):
         # steps of fine-tuning model in original DSS - RNN
 
         # pass through pretrained model
+        print("finetune call input: {}".format(input.shape))
         super(DeepSleepNetFineTuneBase, self).call(input)
 
         print("network shape after pre-train: {}".format(self.network.shape))
 
         fc = self.deep_sleep_net_fc(self.network)
+        print("rnn input shape {}".format(self.network.shape))
         rnn = self.deep_sleep_net_rnn(self.network)
+        print("rnn output shape {}".format(rnn.shape))
         final_output = self.add([fc, rnn])
         final_output = self.do(final_output)
 
