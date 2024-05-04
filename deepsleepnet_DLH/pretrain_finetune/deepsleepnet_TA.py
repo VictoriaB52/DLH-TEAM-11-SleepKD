@@ -1,4 +1,5 @@
 import keras
+import time
 from keras.layers import Conv2D, MaxPooling2D, Dense, Reshape, Bidirectional, LSTM
 
 from deepsleepnet_DLH.pretrain_finetune.deepsleepnet_base import DeepSleepNetBase, DeepSleepPreTrainBase
@@ -12,6 +13,9 @@ class DeepSleepNetTA(DeepSleepNetBase):
         self.finetuned_model: DeepSleepNetFineTuneTA | None = None
 
     def get_model(self, train_model=False):
+
+        start_time = time.time()
+
         # create pretrained model
         self.pretrained_model = DeepSleepNetPreTrainTA(
             name=self.name + "-PreTrain")
@@ -22,6 +26,8 @@ class DeepSleepNetTA(DeepSleepNetBase):
             self.pretrain()
             self.finetune()
 
+        duration = time.time() - start_time
+        print("Took {:.3f}s to train {})".format(duration, self.name))
         return self.pretrained_model, self.finetuned_model
 
 
@@ -38,6 +44,7 @@ class DeepSleepNetPreTrainTA(DeepSleepPreTrainBase):
                             strides=(1, 1), padding="same", activation="relu", name="TAConv2")
         self.max_pool2 = MaxPooling2D(pool_size=(
             4, 1), strides=(4, 1), padding="same", name="TAMaxPool2")
+        self.reshape1 = Reshape(target_shape=(-1, 2048))
 
         # cnn output 2
         self.conv3 = Conv2D(filters=64, kernel_size=(1, 1),
@@ -48,6 +55,7 @@ class DeepSleepNetPreTrainTA(DeepSleepPreTrainBase):
                             strides=(1, 1), padding="same", activation="relu", name="TAConv6")
         self.max_pool4 = MaxPooling2D(pool_size=(
             2, 1), strides=(2, 1), padding="same", name="TAMaxPool4")
+        self.reshape2 = Reshape(target_shape=(-1, 1024))
 
         # output of pretraining - use to calculate loss for model
         self.fc1 = Dense(5, activation="softmax", name='TAPreTrainFC1')
@@ -61,7 +69,7 @@ class DeepSleepNetPreTrainTA(DeepSleepPreTrainBase):
         output = self.do(output)
         output = self.conv2(output)
         output = self.max_pool2(output)
-        output = self.flatten(output)
+        output = self.reshape1(output)
         return output
 
     def deep_feature_net_cnn2(self, input):
@@ -71,7 +79,7 @@ class DeepSleepNetPreTrainTA(DeepSleepPreTrainBase):
         output = self.do(output)
         output = self.conv4(output)
         output = self.max_pool4(output)
-        output = self.flatten(output)
+        output = self.reshape2(output)
         return output
 
     def deep_feature_net_final_output(self, input):
@@ -86,11 +94,11 @@ class DeepSleepNetFineTuneTA(DeepSleepNetPreTrainTA):
         self.finetune_seq_length = finetune_seq_length
 
         # fully connected
-        self.fc2 = Dense(1024, name="TAFineTuneFC2", activation="relu")
+        self.fc2 = Dense(512, name="TAFineTuneFC2", activation="relu")
 
         # rnn
-        self.reshape1 = Reshape(input_shape=(self.finetune_batch_size * self.finetune_seq_length, 3072),
-                                target_shape=(-1, 3072), name="TAFineTuneReshape1")
+        self.reshape3 = Reshape(target_shape=(-1, 3072),
+                                name="TAFineTuneReshape1")
         self.bidirectional = Bidirectional(
             LSTM(256), merge_mode="concat", name="TAFineTuneBidirectional1")
 

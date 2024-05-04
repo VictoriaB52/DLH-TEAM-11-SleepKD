@@ -1,5 +1,6 @@
 import tensorflow as tf
 import keras
+import time
 from keras.models import Model
 import os
 
@@ -109,6 +110,7 @@ class Distiller(keras.Model):
 
 def get_distilled_model(x_train, teacher_model, student_model, name=None, y_train=None, training_epochs=1, model_dir=None):
 
+    start_time = time.time()
     model = Distiller(teacher=teacher_model, student=student_model, name=name)
 
     if model_dir and os.path.exists(model_dir):
@@ -134,4 +136,8 @@ def get_distilled_model(x_train, teacher_model, student_model, name=None, y_trai
     model.fit(x_train, y_train, epochs=training_epochs)
     model.save_weights(
         model_dir if model_dir else 'models/deepsleepnet_distilled_weights.h5')
+
+    duration = time.time() - start_time
+    print("Took {:.3f}s to train {})".format(duration, self.name))
+
     return model

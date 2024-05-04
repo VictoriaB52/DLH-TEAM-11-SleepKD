@@ -1,4 +1,5 @@
 import keras
+import time
 from keras.layers import Conv2D, MaxPooling2D, Dense, Reshape, Bidirectional, LSTM
 
 from deepsleepnet_DLH.pretrain_finetune.deepsleepnet_base import DeepSleepNetBase, DeepSleepPreTrainBase
@@ -13,6 +14,8 @@ class DeepSleepNetStudent(DeepSleepNetBase):
 
     def get_model(self, train_model: bool):
 
+        start_time = time.time()
+
         self.pretrained_model = DeepSleepNetPreTrainStudent(
             name=self.name + "-PreTrain")
         self.finetuned_model = DeepSleepNetFineTuneStudent(
@@ -21,6 +24,9 @@ class DeepSleepNetStudent(DeepSleepNetBase):
         if train_model:
             self.pretrain()
             self.finetune()
+
+        duration = time.time() - start_time
+        print("Took {:.3f}s to train {})".format(duration, self.name))
 
         return self.pretrained_model, self.finetuned_model
 

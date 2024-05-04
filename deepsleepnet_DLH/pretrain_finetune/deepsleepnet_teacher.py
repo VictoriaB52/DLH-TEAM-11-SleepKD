@@ -1,7 +1,8 @@
 import keras
+import time
 from keras.layers import Conv2D, MaxPooling2D, Dropout, Dense, Bidirectional, LSTM, Reshape
 
-from deepsleepnet_DLH.pretrain_finetune.deepsleepnet_base import DeepSleepNetBase, DeepSleepPreTrainBase
+from deepsleepnet_DLH.pretrain_finetune.deepsleepnet_base import DeepSleepNetBase, DeepSleepPreTrainBase, DeepSleepNetFineTuneBase
 
 
 class DeepSleepNetTeacher(DeepSleepNetBase):
@@ -12,6 +13,9 @@ class DeepSleepNetTeacher(DeepSleepNetBase):
         self.finetuned_model: DeepSleepNetFineTuneTeacher | None = None
 
     def get_model(self, train_model: bool = True):
+
+        start_time = time.time()
+
         self.pretrained_model = DeepSleepNetPreTrainTeacher(
             name=self.name + "-PreTrain")
         self.finetuned_model = DeepSleepNetFineTuneTeacher(
@@ -20,6 +24,9 @@ class DeepSleepNetTeacher(DeepSleepNetBase):
         if train_model:
             self.pretrain()
             self.finetune()
+
+        duration = time.time() - start_time
+        print("Took {:.3f}s to train {})".format(duration, self.name))
 
         return self.pretrained_model, self.finetuned_model
 
@@ -42,6 +49,7 @@ class DeepSleepNetPreTrainTeacher(DeepSleepPreTrainBase):
                             strides=(1, 1), padding="same", name="teacherPreTrainConv4", activation="relu")
         self.max_pool2 = MaxPooling2D(pool_size=(
             4, 1), strides=(4, 1), padding="same", name="teacherPreTrainMaxPool2")
+        self.reshape1 = Reshape(target_shape=(-1, 2048))
 
         # cnn output 2
         self.conv5 = Conv2D(filters=64, kernel_size=(1, 1),
@@ -56,6 +64,7 @@ class DeepSleepNetPreTrainTeacher(DeepSleepPreTrainBase):
                             strides=(1, 1), padding="same", name="teacherPreTrainConv8", activation="relu")
         self.max_pool4 = MaxPooling2D(pool_size=(
             2, 1), strides=(2, 1), padding="same", name="teacherPreTrainMaxPool4")
+        self.reshape2 = Reshape(target_shape=(-1, 1024))
 
         # output of pretraining - use to calculate loss for model
         self.fc1 = Dense(5, activation="softmax", name='teacherPreTrainFC1')
@@ -65,10 +74,9 @@ class DeepSleepNetPreTrainTeacher(DeepSleepPreTrainBase):
 
     def deep_feature_net_cnn1(self, input):
         output = self.conv1(input)
-        # original DFN used batch normalization between convolution
-        # and activation
-        # performance took a hit so removed but left call in logic
-        # to show where it would've been
+        # original DFN had batch normalization between convolution and activation
+        # performance took a hit so not using it but this
+        # is how it would've looked
         # output = self.relu(self.batch_norm1(self.conv1(input)))
         output = self.max_pool1(output)
         output = self.do(output)
@@ -79,7 +87,7 @@ class DeepSleepNetPreTrainTeacher(DeepSleepPreTrainBase):
         # output = self.relu(self.batch_norm2(self.conv3(output)))
         # output = self.relu(self.batch_norm2(self.conv4(output)))
         output = self.max_pool2(output)
-        output = self.flatten(output)
+        output = self.reshape1(output)
         return output
 
     def deep_feature_net_cnn2(self, input):
@@ -94,14 +102,14 @@ class DeepSleepNetPreTrainTeacher(DeepSleepPreTrainBase):
         # output = self.relu(self.batch_norm2(self.conv7(output)))
         # output = self.relu(self.batch_norm2(self.conv8(output)))
         output = self.max_pool4(output)
-        output = self.flatten(output)
+        output = self.reshape2(output)
         return output
 
     def deep_feature_net_final_output(self, input):
         return self.fc1(input)
 
 
-class DeepSleepNetFineTuneTeacher(DeepSleepNetPreTrainTeacher):
+class DeepSleepNetFineTuneTeacher(DeepSleepNetPreTrainTeacher, DeepSleepNetFineTuneBase):
     def __init__(self, name, finetune_batch_size, finetune_seq_length):
         super(DeepSleepNetFineTuneTeacher, self).__init__(name)
         self.finetune_batch_size = finetune_batch_size
@@ -113,7 +121,7 @@ class DeepSleepNetFineTuneTeacher(DeepSleepNetPreTrainTeacher):
         #     momentum=0.999, epsilon=1e-5, name='teacherFineTuneBatchNorm3')
 
         # rnn
-        self.reshape1 = Reshape(input_shape=(self.finetune_batch_size * self.finetune_seq_length, 3072),
+        self.reshape3 = Reshape(input_shape=(self.finetune_batch_size * self.finetune_seq_length, 3072),
                                 target_shape=(-1, 3072), name="teacherFineTuneReshape1")
         self.bidirectional = Bidirectional(
             LSTM(512), merge_mode="concat", name="teacherFineTuneBidirectional1")
@@ -127,7 +135,7 @@ class DeepSleepNetFineTuneTeacher(DeepSleepNetPreTrainTeacher):
 
     def deep_sleep_net_rnn(self, input):
         # reshape into (batch_size, seq_length, input_dim)
-        output = self.reshape1(input)
+        output = self.reshape3(input)
         output = self.bidirectional(output)
         return output
 

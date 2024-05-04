@@ -2,6 +2,7 @@ import tensorflow as tf
 import keras
 from keras.models import Model
 import os
+import time
 from deepsleepnet_DLH.pretrain_finetune.data_loader import iterate_batch_seq_minibatches
 
 
@@ -173,6 +174,8 @@ def get_distilled_model(x_train: tf.Tensor, x_train_files: list,
                         distilled_pretrain_dir: str = None, distilled_finetune_dir: str = None,
                         training_epochs: int = 1,):
 
+    start_time = time.time()
+
     pretrain_name = name + "-PreTrain"
     finetune_name = name + "FineTune"
 
@@ -189,5 +192,8 @@ def get_distilled_model(x_train: tf.Tensor, x_train_files: list,
                                                               distilled_finetune_dir=distilled_finetune_dir,
                                                               batch_size=finetune_batch_size, seq_len=finetune_seq_len,
                                                               name=finetune_name, training_epochs=training_epochs)
+
+    duration = time.time() - start_time
+    print("Took {:.3f}s to distill {}".format(duration, finetune_name))
 
     return distilled_pretrained_model, distilled_finetuned_model

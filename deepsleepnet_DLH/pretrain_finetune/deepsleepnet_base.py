@@ -70,7 +70,8 @@ class DeepSleepNetBase():
             self.pretrained_model_dir, by_name=True, skip_mismatch=True)
 
         # then go through and train entire model, including pre-trained layers
-        # actual DeepSleepNet uses lower learning rate for pre-trained layers
+        # actual DeepSleepNet uses lower learning rate for pre-trained layers a
+        # nd higher for layers newly seen in fine-tuning
         self.finetuned_model.compile(optimizer=Adam(learning_rate=1e-4),
                                      loss=SparseCategoricalCrossentropy(from_logits=False), metrics=["accuracy"])
 
@@ -91,7 +92,7 @@ class DeepSleepNetBase():
         self.finetuned_model.save_weights(self.finetuned_model_dir)
 
 
-# superclass for pre-train model of teacher, TA, studen
+# superclass for pre-train model of teacher, TA, student
 class DeepSleepPreTrainBase(Model):
     def __init__(self, name):
         super(DeepSleepPreTrainBase, self).__init__(name=name)
@@ -103,22 +104,19 @@ class DeepSleepPreTrainBase(Model):
     def call(self, input):
 
         # steps of pre-training model in original DSS - Convolution
-        print("pre-train input: {}".format(input.shape))
+        # print("pre-train input: {}".format(input.shape))
         cnn1 = self.deep_feature_net_cnn1(input)
-        print(cnn1.shape)
         cnn2 = self.deep_feature_net_cnn2(input)
-        print(cnn2.shape)
         network = self.concat([cnn1, cnn2])
-        print(network.shape)
         network = self.do(network)
 
         # final layer of pre-training model (in build_model) in original DSS
         network = self.flatten(network)
-        print("\nnetwork shape after pre-training: {}".format(network.shape))
+        # print("\nnetwork shape after pre-training: {}".format(network.shape))
         self.network = network
 
         final_output = self.deep_feature_net_final_output(network)
-        print("final output shape: {}\n".format(final_output.shape))
+        # print("final output shape: {}\n".format(final_output.shape))
 
         return final_output
 
@@ -143,22 +141,20 @@ class DeepSleepNetFineTuneBase(DeepSleepPreTrainBase):
         # steps of fine-tuning model in original DSS - RNN
 
         # pass through pretrained model
-        print("finetune call input: {}".format(input.shape))
+        # print("finetune call input: {}".format(input.shape))
         super(DeepSleepNetFineTuneBase, self).call(input)
 
-        print("network shape after pre-train: {}".format(self.network.shape))
+        # print("network shape after pre-train: {}".format(self.network.shape))
 
         fc = self.deep_sleep_net_fc(self.network)
-        print("rnn input shape {}".format(self.network.shape))
         rnn = self.deep_sleep_net_rnn(self.network)
-        print("rnn output shape {}".format(rnn.shape))
         final_output = self.add([fc, rnn])
         final_output = self.do(final_output)
 
         # soft labels of 5 possible sleep stages
         final_output = self.deep_sleep_net_final_output(final_output)
 
-        print("network shape after fine-tuning: {}".format(final_output.shape))
+        # print("network shape after fine-tuning: {}".format(final_output.shape))
 
         return final_output
 

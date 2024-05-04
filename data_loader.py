@@ -15,11 +15,10 @@ def _load_npz_file(npz_file):
     return data, labels, sampling_rate
 
 
-# CREDIT: This file is taken directly from DeepSleepNet's data_loader.py
+# CREDIT: This file is heavily inspired by DeepSleepNet's SeqDataLoader._load_npz_list_files function
 # https://github.com/akaraspt/deepsleepnet/blob/master/deepsleep/data_loader.py
 #
-# Given a list of npz_files, process each and store features/labels into their own file
-# NOT TAKEN DIRECTLY ANYMORE - NOT STACKING (unless this is same as SeqDataLoader's)
+# Given a list of npz_files, load each and save features and labels into lists
 def _load_npz_list_files(npz_files):
     """Load data and labels from list of npz files."""
     data = []
@@ -38,9 +37,6 @@ def _load_npz_list_files(npz_files):
 
         data.append(tmp_data)
         labels.append(tmp_labels)
-
-    # data = np.vstack(data)
-    # labels = np.hstack(labels)
 
     return data, labels
 
@@ -62,32 +58,15 @@ def load_all_data(data_dir):
     data, labels = _load_npz_list_files(
         npz_files=npzfiles)
 
-    # # Reshape the data to match the input of the model - conv2d
-    # data = np.squeeze(data)
-    # data = data[:, :, np.newaxis, np.newaxis]
-
-    # # Casting
-    # data = data.astype(np.float32)
-    # labels = labels.astype(np.int32)
-
-    # # Use balanced-class, oversample training set
-    # data, labels = get_balance_class_oversample(
-    #     x=data, y=labels
-    # )
-
     return data, labels
 
 
+# stack data from lists of features and labels to get input for pre-training
+# this logic is originally in load_npz_list_files in DeepSleepNet for NonSeqDataLoader
 def process_non_seq(data, labels):
 
-    # this logic is originally in load_npz_list_files in DeepSleepNet for NonSeqDataLoader
     data = np.vstack(data)
     labels = np.hstack(labels)
-
-    # and this logic is originally in load_train_data for NonSeqDataLoader
-    # Reshape the data to match the input of the model - conv2d
-    # data = np.squeeze(data)
-    # data = data[:, :, np.newaxis, np.newaxis]
 
     # Casting
     data = data.astype(np.float32)
@@ -142,7 +121,6 @@ def get_balance_class_oversample(x, y):
 
 # CREDIT: this file is taken directly from DeepSleepNet's utils.py
 # https://github.com/akaraspt/deepsleepnet/blob/master/deepsleep/utils.py
-#
 def iterate_batch_seq_minibatches(inputs, targets, batch_size, seq_length):
     assert len(inputs) == len(targets)
     n_inputs = len(inputs)
@@ -168,3 +146,4 @@ def iterate_batch_seq_minibatches(inputs, targets, batch_size, seq_length):
         flatten_y = y.reshape((-1,) + targets.shape[1:])
         # returning reshaped values to work as inputs to pre-train portion of model
         yield flatten_x, flatten_y
+
