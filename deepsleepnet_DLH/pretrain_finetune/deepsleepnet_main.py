@@ -104,15 +104,6 @@ def run_pretrain_finetune_deepsleepnet():
         model=finetuned_teacher_model, x_test_files=x_test_files, y_test_files=y_test_files,
         batch_size=finetune_batch_size, seq_length=finetune_seq_len)
 
-    display_matrix = ConfusionMatrixDisplay(
-        confusion_matrix=teacher_conv_matrix)
-    display_matrix.plot()
-    plt.title(
-        "Confusion Matrix of Sleep Stage Classification on Pre-Trained Teacher Model")
-
-    plt.savefig(
-        'deepsleepnet_DLH/pretrain_finetune/metrics/teacher_conf_matrix.png', format='png')
-
     # student model
     print("\nstudent model")
     student = DeepSleepNetStudent(
@@ -129,15 +120,6 @@ def run_pretrain_finetune_deepsleepnet():
     student_conv_matrix, student_acc, student_f1_score = evaluate(
         model=trained_student_finetuned_model, x_test_files=x_test_files, y_test_files=y_test_files,
         batch_size=finetune_batch_size, seq_length=finetune_seq_len)
-
-    display_matrix = ConfusionMatrixDisplay(
-        confusion_matrix=student_conv_matrix)
-    display_matrix.plot()
-    plt.title(
-        "Confusion Matrix of Sleep Stage Classification on Student Model")
-
-    plt.savefig(
-        'deepsleepnet_DLH/pretrain_finetune/metrics/student_conf_matrix.png', format='png')
 
     # # teacher_assistant distilled from teacher
     print("\nTA model")
@@ -167,15 +149,6 @@ def run_pretrain_finetune_deepsleepnet():
     teacher_assistant_conv_matrix, teacher_assistant_acc, teacher_assistant_f1_score = evaluate(
         model=distilled_TA_finetune_model, x_test_files=x_test_files, y_test_files=y_test_files,
         batch_size=finetune_batch_size, seq_length=finetune_seq_len)
-
-    display_matrix = ConfusionMatrixDisplay(
-        confusion_matrix=teacher_assistant_conv_matrix)
-    display_matrix.plot()
-    plt.title(
-        "Confusion Matrix of Sleep Stage Classification on Distilled TA Model")
-
-    plt.savefig(
-        'deepsleepnet_DLH/pretrain_finetune/metrics/distilled_TA_conf_matrix.png', format='png')
 
     # student model distilled from TA
     print("\ndistilled student model")
@@ -207,15 +180,6 @@ def run_pretrain_finetune_deepsleepnet():
         model=distilled_student_finetune_model, x_test_files=x_test_files, y_test_files=y_test_files,
         batch_size=finetune_batch_size, seq_length=finetune_seq_len)
 
-    display_matrix = ConfusionMatrixDisplay(
-        confusion_matrix=distilled_student_conv_matrix)
-    display_matrix.plot()
-    plt.title(
-        "Confusion Matrix of Sleep Stage Classification on Distilled Student (From TA) Model")
-
-    plt.savefig(
-        'deepsleepnet_DLH/pretrain_finetune/metrics/student_TA_conf_matrix.png', format='png')
-
     untrained_student_from_teacher = DeepSleepNetStudent(name="UntrainedStudentModel",
                                                          pretrain_data=x_train_non_seq, pretrain_labels=y_train_non_seq,
                                                          finetune_data=x_train_files, finetune_labels=y_train_files,
@@ -242,15 +206,6 @@ def run_pretrain_finetune_deepsleepnet():
     distilled_student_conv_matrix, distilled_student_acc, distilled_student_f1_score = evaluate(
         model=distilled_student_finetune_model, x_test_files=x_test_files, y_test_files=y_test_files,
         batch_size=finetune_batch_size, seq_length=finetune_seq_len)
-
-    display_matrix = ConfusionMatrixDisplay(
-        confusion_matrix=distilled_student_conv_matrix)
-    display_matrix.plot()
-    plt.title(
-        "Confusion Matrix of Sleep Stage Classification on Distilled Student (From Teacher) Model")
-
-    plt.savefig(
-        'deepsleepnet_DLH/pretrain_finetune/metrics/student_teacher_conf_matrix.png', format='png')
 
 
 def evaluate(model, x_test_files, y_test_files, batch_size, seq_length):
